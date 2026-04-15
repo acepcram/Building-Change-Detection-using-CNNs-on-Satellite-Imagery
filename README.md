@@ -71,8 +71,8 @@ project/
 ├── results/
 │   ├── baseline/
 │   │   ├── early_fusion_training_curves.png
-│   │   ├── siamese_training_curves.png
-│   │   └── confusion_matrices.png
+│   │   └── siamese_training_curves.png
+│   │  
 │   └── extension/
 │       ├── sensitivity_analysis_results.png
 │       └── summary_table.csv
