@@ -75,7 +75,7 @@ project/
 │   │  
 │   └── extension/
 │       ├── sensitivity_analysis_results.png
-│       └── summary_table.csv
+│       └── summary_table.png
 └── docs/
     ├── paper_daudt_2018.pdf                 # Original paper      
 ```
