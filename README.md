@@ -479,9 +479,9 @@ print(f"Batch labels: {batch[2]}")
 
 ## 👥 Project Team
 
-Minh Vu 
-Jordan Skomal 
-Muhammad Afrooz 
+Minh Vu, 
+Jordan Skomal, 
+Muhammad Afrooz, 
 Darhell Akitani Bob
 
 **Course:** CSCI 4800/5800 
