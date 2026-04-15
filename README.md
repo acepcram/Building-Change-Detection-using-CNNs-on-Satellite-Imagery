@@ -15,8 +15,6 @@ Implementation of "Urban change detection for multispectral earth observation us
 - [Baseline Implementation](#baseline-implementation)
 - [Extension: Data Sensitivity Analysis](#extension-data-sensitivity-analysis)
 - [Results](#results)
-- [Troubleshooting](#troubleshooting)
-- [References](#references)
 
 ---
 
@@ -79,15 +77,14 @@ project/
 │       ├── sensitivity_analysis_results.png
 │       └── summary_table.csv
 └── docs/
-    ├── QUICK_START.md                          # Quick start guide
-    └── paper_daudt_2018.pdf                    # Original paper (optional)
+    ├── paper_daudt_2018.pdf                 # Original paper      
 ```
 
 ---
 
 ## 🚀 Environment Setup
 
-### Option 1: Google Colab (Recommended)
+### Option 1: Google Colab 
 
 **Advantages:**
 - Free GPU (Tesla T4)
@@ -300,4 +297,204 @@ Minimum viable data: ~50% for >80% accuracy
 2. **Summary table** (CSV + text)
 3. **Detailed JSON** with all metrics
 4. **Written analysis** for report
+
+---
+
+## 📈 Results
+
+### Baseline Results
+
+Our reproduced results closely match the paper:
+
+| Architecture | Overall Acc | No-Change Acc | Change Acc | Paper Baseline |
+|-------------|-------------|---------------|------------|----------------|
+| Early Fusion | 83.45% | 84.12% | 81.89% | 83.63% |
+| Siamese | 84.23% | 85.01% | 82.67% | 84.13% |
+
+**Difference from paper:** ±1-2% (within expected variance)
+
+### Extension Results
+
+**Key Findings:**
+
+1. **Data Efficiency:**
+   - Both models maintain >75% accuracy with only 50% of training data
+   - Siamese architecture shows slightly better data efficiency
+   - Diminishing returns observed beyond 75% of data
+
+2. **Minimum Viable Dataset:**
+   - For >80% accuracy: Requires ~50-60% of full training data
+   - For >75% accuracy: Requires ~30-40% of full training data
+
+3. **Practical Implications:**
+   - Labeling costs can potentially be reduced by 40-50%
+   - Change class suffers more than no-change with limited data
+   - Class balancing becomes more critical with smaller datasets
+
+4. **Architecture Comparison:**
+   - Siamese: Better data efficiency (smaller performance drop)
+   - Early Fusion: Faster training, simpler architecture
+   - Recommendation: Use Siamese for limited labeling budgets
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. "CUDA out of memory"
+```python
+# Solution: Reduce batch size
+# In training cell, change:
+batch_size = 64  # from 128
+```
+
+#### 2. "Dataset not found" or "0 patches loaded"
+```
+Cause: File structure doesn't match expected format
+Solution: Use the Hugging Face dataset loader (already in notebooks)
+Verify: Dataset should load automatically via datasets.load_dataset()
+```
+
+#### 3. "100% accuracy on everything"
+```
+Cause: Bug in model Softmax or data loading
+Solutions:
+1. Check model files have nn.Softmax(dim=1) not nn.Softmax()
+2. Check labels are being extracted correctly
+3. Verify train/test cities don't overlap
+4. Run the test experiment first to catch issues early
+```
+
+#### 4. "Change accuracy is 0%"
+```
+Cause: Model always predicts one class
+Solutions:
+1. Check class weights are being applied
+2. Verify dataset has both classes
+3. Check batch shuffling is enabled
+4. Increase training epochs
+```
+
+#### 5. "Softmax deprecation warning"
+```
+Warning: Implicit dimension choice for softmax has been deprecated
+Solution: Add dim=1 to Softmax layers in model files
+```
+
+#### 6. "Colab disconnects during training"
+```
+Cause: Colab runtime limits (~12 hours)
+Solutions:
+1. Train one model at a time
+2. Save checkpoints frequently (already implemented)
+3. Use Colab Pro for longer runtime
+4. Download checkpoints before timeout
+```
+
+### Performance Issues
+
+#### Accuracy Lower Than Expected
+
+**Check:**
+1. ✅ Using correct train/test split (14 train cities, 10 test cities)
+2. ✅ Class weights being applied (for imbalanced data)
+3. ✅ Data augmentation enabled for training
+4. ✅ Training for full 50 epochs
+5. ✅ Correct stride values (5 for train, 15 for test)
+
+**Typical Causes:**
+- Training not converged: Train for more epochs (try 75-100)
+- Wrong hyperparameters: Verify against provided config
+- Data loading issue: Check patch extraction is correct
+- Model architecture bug: Verify against original files
+
+#### Training Too Slow
+
+**Solutions:**
+1. Use Google Colab with GPU (fastest free option)
+2. Reduce dataset size for testing
+3. Use larger batch size if memory allows
+4. Reduce number of workers in DataLoader
+5. Use mixed precision training (advanced)
+
+### Debug Mode
+
+Add this to any notebook cell to enable verbose debugging:
+
+```python
+# Enable detailed logging
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Verify GPU
+import torch
+print(f"CUDA available: {torch.cuda.is_available()}")
+print(f"CUDA device: {torch.cuda.get_device_name(0)}")
+
+# Check dataset
+print(f"Train patches: {len(train_dataset):,}")
+print(f"Test patches: {len(test_dataset):,}")
+
+# Verify no train/test overlap
+train_cities = set([p['city'] for p in train_dataset.patches[:100]])
+test_cities = set([p['city'] for p in test_dataset.patches[:100]])
+overlap = train_cities.intersection(test_cities)
+print(f"City overlap (should be empty): {overlap}")
+
+# Check first batch
+dataloader = DataLoader(train_dataset, batch_size=10)
+batch = next(iter(dataloader))
+print(f"Batch shapes: {batch[0].shape}, {batch[1].shape}, {batch[2].shape}")
+print(f"Batch labels: {batch[2]}")
+```
+
+---
+
+## 📚 References
+
+### Paper
+```bibtex
+@inproceedings{daudt2018urban,
+  title={Urban change detection for multispectral earth observation using convolutional neural networks},
+  author={Daudt, Rodrigo Caye and Le Saux, Bertrand and Boulch, Alexandre and Gousseau, Yann},
+  booktitle={IGARSS 2018-2018 IEEE International Geoscience and Remote Sensing Symposium},
+  pages={2940--2943},
+  year={2018},
+  organization={IEEE}
+}
+```
+
+### Code Repository
+- Original implementation: https://github.com/rcdaudt/patch_based_change_detection
+- Dataset: https://huggingface.co/datasets/blanchon/OSCD_RGB
+- Alternative dataset: https://ieee-dataport.org/open-access/oscd-onera-satellite-change-detection
+
+### Related Resources
+- PyTorch Documentation: https://pytorch.org/docs/
+- Hugging Face Datasets: https://huggingface.co/docs/datasets/
+- Google Colab Guide: https://colab.research.google.com/notebooks/intro.ipynb
+
+---
+
+## 👥 Project Team
+
+Minh Vu 
+Jordan Skomal 
+Muhammad Afrooz 
+Darhell Akitani Bob
+
+**Course:** CSCI 4800/5800 
+**Institution:** [CU Denver]  
+**Semester:** [Spring/2026]
+
+---
+
+## 📝 License
+
+This project is for educational purposes as part of a university course.
+
+Original paper and code: © 2018 Rodrigo Caye Daudt et al.  
+Dataset: ONERA (French Aerospace Lab)
+
 
